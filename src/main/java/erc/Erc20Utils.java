@@ -1,11 +1,11 @@
 package erc;
 
 import com.alibaba.fastjson.JSONObject;
+import org.web3j.abi.EventEncoder;
 import org.web3j.abi.FunctionEncoder;
+import org.web3j.abi.FunctionReturnDecoder;
 import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Address;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.*;
 import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.RawTransaction;
@@ -13,7 +13,10 @@ import org.web3j.crypto.Sign;
 import org.web3j.crypto.TransactionEncoder;
 import org.web3j.crypto.transaction.type.TransactionType;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
+import org.web3j.protocol.core.methods.response.Log;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.rlp.RlpEncoder;
 import org.web3j.rlp.RlpList;
@@ -23,81 +26,98 @@ import org.web3j.utils.Numeric;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class Erc20Utils {
-    public static RawTransaction transferFrom_step1_create(String WEB3_PROVIDER_URL,
-                                                           String cntrAddr,
-                                                           String fromAddr,
-                                                           String destAddr,
-                                                           long amount,
-                                                           long gasPrice,
-                                                           long gasLimit) throws Exception {
+    public static RawTransaction approveTransactionCreate(String WEB3_PROVIDER_URL,
+                                                          String cntrAddr,
+                                                          String ownerAddr,
+                                                          String spenderAddr,
+                                                          long amount,
+                                                          long gasLimit) throws Exception {
         // 连接以太坊
         Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
+        BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
 
-        List<Type> inputParameters = new ArrayList<>();
-        List<TypeReference<?>> outputParameters = new ArrayList<>();
+        Function function = approve(spenderAddr, BigInteger.valueOf(amount));
 
-        inputParameters.add(new Uint256(new BigInteger(fromAddr)));
-        inputParameters.add(new Uint256(new BigInteger(destAddr)));
-        inputParameters.add(new Uint256(BigInteger.valueOf(amount)));
+        BigInteger newNonce = getTransactionNonce(web3j, ownerAddr);
 
-        outputParameters.add(new TypeReference<Address>() {
-        });
-        outputParameters.add(new TypeReference<Address>() {
-        });
-        outputParameters.add(new TypeReference<Uint256>() {
-        });
+        String encodedFunction = FunctionEncoder.encode(function);
 
-        // 构造ERC20代币的transferFrom函数调用
-        Function transferFromFunction = new Function(
-                "transferFrom",
-                inputParameters,
-                outputParameters
-        );
-        String encodedTransferFromFunction = FunctionEncoder.encode(transferFromFunction);
+        RawTransaction rawTransaction =
+                RawTransaction.createTransaction(
+                        newNonce, gasPrice, BigInteger.valueOf(gasLimit), cntrAddr, encodedFunction);
+
+
+        return rawTransaction;
+
+    }
+
+
+
+    public static RawTransaction transferTransactionCreate(String WEB3_PROVIDER_URL,
+                                                               String cntrAddr,
+                                                               String fromAddr,
+                                                               String destAddr,
+                                                               long amount,
+                                                               long gasLimit) throws Exception {
+        // 连接以太坊
+        Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
+        BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
+
+        // 构造ERC20代币的transfer函数调用
+        Function function = transfer(destAddr, BigInteger.valueOf(amount));
+
+        String encodedFunction = FunctionEncoder.encode(function);
 
         // 获取新的nonce值
         BigInteger newNonce = getTransactionNonce(web3j, fromAddr);
 
         // 构造原始交易
-        RawTransaction transferFromRawTransaction = RawTransaction.createTransaction(
-                newNonce,
-                BigInteger.valueOf(gasPrice),
-                BigInteger.valueOf(gasLimit),
-                cntrAddr,
-                encodedTransferFromFunction
-        );
+        RawTransaction transaction =
+                RawTransaction.createTransaction(
+                        newNonce, gasPrice, BigInteger.valueOf(gasLimit), cntrAddr, encodedFunction);
 
-
-        return transferFromRawTransaction;
-
-
+        return transaction;
     }
 
 
-    public static String transferFrom_step3_send(String WEB3_PROVIDER_URL, RawTransaction transferFromRawTransaction, String hexSignDataJson) throws Exception {
+
+
+
+    public static RawTransaction transferFromTransactionCreate(String WEB3_PROVIDER_URL,
+                                                           String cntrAddr,
+                                                           String spenderAddr,
+                                                           String fromAddr,
+                                                           String destAddr,
+                                                           long amount,
+                                                           long gasLimit) throws Exception {
         // 连接以太坊
         Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
+        BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
 
-        HexSignData hexSignData = JSONObject.parseObject(hexSignDataJson, HexSignData.class);
-        Sign.SignatureData signatureData = new Sign.SignatureData(Numeric.hexStringToByteArray(hexSignData.getV()),
-                Numeric.hexStringToByteArray(hexSignData.getR()),
-                Numeric.hexStringToByteArray(hexSignData.getS()));
+        // 构造ERC20代币的transfer函数调用
+        Function function = transferFrom(fromAddr, destAddr, BigInteger.valueOf(amount));
 
+        String encodedFunction = FunctionEncoder.encode(function);
 
-        byte[] signedTransferFromMessage = encode(transferFromRawTransaction, signatureData);
+        // 获取新的nonce值
+        BigInteger newNonce = getTransactionNonce(web3j, spenderAddr);
 
-        // 发送交易到以太坊网络
-        String transferFromTransactionHash = web3j.ethSendRawTransaction(Numeric.toHexString(signedTransferFromMessage)).send().getTransactionHash();
-        System.out.println("Transfer from transaction hash: " + transferFromTransactionHash);
+        // 构造原始交易
+        RawTransaction transaction =
+                RawTransaction.createTransaction(
+                        newNonce, gasPrice, BigInteger.valueOf(gasLimit), cntrAddr, encodedFunction);
 
-        return transferFromTransactionHash;
+        return transaction;
     }
 
 
-    public static String transferFrom_step2_sign(String hexTxid, String WALLET_PRIVATE_KEY) {
+
+    public static String sign(String hexTxid, String WALLET_PRIVATE_KEY) {
         Credentials credentials = Credentials.create(WALLET_PRIVATE_KEY);
 
         Sign.SignatureData signatureData = Sign.signMessage(Numeric.hexStringToByteArray(hexTxid), credentials.getEcKeyPair());
@@ -111,8 +131,55 @@ public class Erc20Utils {
 
     }
 
+
+    public static String send(String WEB3_PROVIDER_URL, RawTransaction transferFromRawTransaction, String hexSignDataJson) throws Exception {
+        // 连接以太坊
+        Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
+
+        HexSignData hexSignData = JSONObject.parseObject(hexSignDataJson, HexSignData.class);
+        Sign.SignatureData signatureData = new Sign.SignatureData(Numeric.hexStringToByteArray(hexSignData.getV()),
+                Numeric.hexStringToByteArray(hexSignData.getR()),
+                Numeric.hexStringToByteArray(hexSignData.getS()));
+
+
+        byte[] transactionMsg = encode(transferFromRawTransaction, signatureData);
+
+        // 发送交易到以太坊网络
+        String transactionHash = web3j.ethSendRawTransaction(Numeric.toHexString(transactionMsg)).send().getTransactionHash();
+        return transactionHash;
+    }
+
+
+
+
+    private static Function approve(String spender, BigInteger value) {
+        return new Function(
+                "approve",
+                Arrays.asList(new Address(spender), new Uint256(value)),
+                Collections.singletonList(new TypeReference<Bool>() {
+                }));
+    }
+
+
+    private static Function transfer(String to, BigInteger value) {
+        return new Function(
+                "transfer",
+                Arrays.asList(new Address(to), new Uint256(value)),
+                Collections.singletonList(new TypeReference<Bool>() {}));
+    }
+
+
+    private static Function transferFrom(String from, String to, BigInteger value) {
+        return new Function(
+                "transferFrom",
+                Arrays.asList(new Address(from), new Address(to), new Uint256(value)),
+                Collections.singletonList(new TypeReference<Bool>() {
+                }));
+    }
+
+
     private static BigInteger getTransactionNonce(Web3j web3j, String address) throws Exception {
-        EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(address, null).sendAsync().get();
+        EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(address, DefaultBlockParameterName.LATEST).sendAsync().get();
         return ethGetTransactionCount.getTransactionCount();
     }
 

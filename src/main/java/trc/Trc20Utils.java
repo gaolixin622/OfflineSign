@@ -20,43 +20,90 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Trc20Utils {
-    public static Chain.Transaction transferFrom_step1_create(String cntrAddr,
-                                                              String fromAddr,
-                                                              String destAddr,
-                                                              long amount,
-                                                              String memo,
-                                                              long feeLimit) {
+    public static Chain.Transaction approveCreate(String cntrAddr,
+                                                  String ownerAddr,
+                                                  String spender,
+                                                  long amount,
+                                                  String memo,
+                                                  long feeLimit) {
         ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
 
-        java.util.List<Type> inputParameters = new ArrayList<>();
-        List<TypeReference<?>> outputParameters = new ArrayList<>();
+        Function approve = new Function("approve",
+                Arrays.asList(new Address(spender),
+                        new Uint256(BigInteger.valueOf(amount))),
+                Arrays.asList(new TypeReference<Bool>() {
+                }));
 
-        inputParameters.add(new Address(fromAddr));
-        inputParameters.add(new Address(destAddr));
-        inputParameters.add(new Uint256(BigInteger.valueOf(amount)));
-
-        outputParameters.add(new TypeReference<Bool>() {
-        });
-
-        Function transferFrom = new Function("transferFrom",
-                inputParameters,
-                outputParameters);
-        TransactionBuilder builder = apiWrapperWithoutPrivateKey.triggerCall(Base58Check.bytesToBase58(ApiWrapper.parseAddress(fromAddr).toByteArray()), Base58Check.bytesToBase58(ApiWrapper.parseAddress(cntrAddr).toByteArray()), transferFrom);
+        TransactionBuilder builder = apiWrapperWithoutPrivateKey.triggerCall(Base58Check.bytesToBase58(ApiWrapper.parseAddress(ownerAddr).toByteArray()),
+                Base58Check.bytesToBase58(ApiWrapper.parseAddress(cntrAddr).toByteArray()), approve);
         builder.setFeeLimit(feeLimit);
         builder.setMemo(memo);
+
         Chain.Transaction transaction = builder.build();
         return transaction;
 
     }
 
-    public static String transferFrom_step2_sign(String hexTxid,
-                                                 String privateKey) {
+
+    public static Chain.Transaction transferCreate(String cntrAddr,
+                                                   String fromAddr,
+                                                   String destAddr,
+                                                   long amount,
+                                                   String memo,
+                                                   long feeLimit) {
+        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
+
+        Function transfer = new Function("transfer",
+                Arrays.asList(new Address(destAddr),
+                        new Uint256(BigInteger.valueOf(amount))),
+                Arrays.asList(new TypeReference<Bool>() {
+                }));
+
+        TransactionBuilder builder = apiWrapperWithoutPrivateKey.triggerCall(Base58Check.bytesToBase58(ApiWrapper.parseAddress(fromAddr).toByteArray()),
+                Base58Check.bytesToBase58(ApiWrapper.parseAddress(cntrAddr).toByteArray()), transfer);
+        builder.setFeeLimit(feeLimit);
+        builder.setMemo(memo);
+
+        Chain.Transaction transaction = builder.build();
+        return transaction;
+
+    }
+
+    public static Chain.Transaction transferFromCreate(String cntrAddr,
+                                                       String spenderAdder,
+                                                       String fromAddr,
+                                                       String destAddr,
+                                                       long amount,
+                                                       String memo,
+                                                       long feeLimit) {
+        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
+
+
+        Function transferFrom = new Function("transferFrom",
+                Arrays.asList(new Address(fromAddr), new Address(destAddr),
+                        new Uint256(BigInteger.valueOf(amount))),
+                Arrays.asList(new TypeReference<Bool>() {
+                }));
+
+        TransactionBuilder builder = apiWrapperWithoutPrivateKey.triggerCall(Base58Check.bytesToBase58(ApiWrapper.parseAddress(spenderAdder).toByteArray()),
+                Base58Check.bytesToBase58(ApiWrapper.parseAddress(cntrAddr).toByteArray()), transferFrom);
+        builder.setFeeLimit(feeLimit);
+        builder.setMemo(memo);
+
+        Chain.Transaction transaction = builder.build();
+        return transaction;
+
+    }
+
+
+    public static String sign(String hexTxid,
+                              String privateKey) {
 
         String hexSignature = signTransaction(hexTxid, privateKey);
         return hexSignature;
     }
 
-    public static String transferFrom_step3_broadcast(Chain.Transaction transaction, String hexSignature) {
+    public static String broadcast(Chain.Transaction transaction, String hexSignature) {
         byte[] signature = Numeric.hexStringToByteArray(hexSignature);
         Chain.Transaction signedTxn = transaction.toBuilder().addSignature(ByteString.copyFrom(signature)).build();
         return broadcastTransaction(signedTxn);

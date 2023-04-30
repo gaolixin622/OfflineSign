@@ -12,7 +12,8 @@ public class Trc20UtilsTest {
         String memo = "";
         long feeLimit = 100;
 
-        Chain.Transaction transaction = Trc20Utils.transferFrom_step1_create(cntrAddr,
+        Chain.Transaction transaction = Trc20Utils.transferFromCreate(cntrAddr,
+                destAddr,
                 fromAddr,
                 destAddr,
                 amount,
@@ -25,9 +26,9 @@ public class Trc20UtilsTest {
         //将hexTxid以二维码形式，展示
         //另一部设备，扫描hexTxid，进行签名
         //将签名结果用二维码展示
-        String hexSignature = Trc20Utils.transferFrom_step2_sign(hexTxid, "");
+        String hexSignature = Trc20Utils.sign(hexTxid, "");
 
-        String txid = Trc20Utils.transferFrom_step3_broadcast(transaction, hexSignature);
+        String txid = Trc20Utils.broadcast(transaction, hexSignature);
         System.out.println(txid);
 
     }
