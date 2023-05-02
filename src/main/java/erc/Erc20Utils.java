@@ -31,12 +31,12 @@ import java.util.Collections;
 import java.util.List;
 
 public class Erc20Utils {
-    public static RawTransaction approveTransactionCreate(String WEB3_PROVIDER_URL,
-                                                          String cntrAddr,
-                                                          String ownerAddr,
-                                                          String spenderAddr,
-                                                          long amount,
-                                                          long gasLimit) throws Exception {
+    public static RawTransaction approve(String WEB3_PROVIDER_URL,
+                                         String cntrAddr,
+                                         String ownerAddr,
+                                         String spenderAddr,
+                                         long amount,
+                                         long gasLimit) throws Exception {
         // 连接以太坊
         Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
         BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
@@ -58,12 +58,12 @@ public class Erc20Utils {
 
 
 
-    public static RawTransaction transferTransactionCreate(String WEB3_PROVIDER_URL,
-                                                               String cntrAddr,
-                                                               String fromAddr,
-                                                               String destAddr,
-                                                               long amount,
-                                                               long gasLimit) throws Exception {
+    public static RawTransaction transfer(String WEB3_PROVIDER_URL,
+                                          String cntrAddr,
+                                          String fromAddr,
+                                          String destAddr,
+                                          long amount,
+                                          long gasLimit) throws Exception {
         // 连接以太坊
         Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
         BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
@@ -88,13 +88,13 @@ public class Erc20Utils {
 
 
 
-    public static RawTransaction transferFromTransactionCreate(String WEB3_PROVIDER_URL,
-                                                           String cntrAddr,
-                                                           String spenderAddr,
-                                                           String fromAddr,
-                                                           String destAddr,
-                                                           long amount,
-                                                           long gasLimit) throws Exception {
+    public static RawTransaction transferFrom(String WEB3_PROVIDER_URL,
+                                              String cntrAddr,
+                                              String spenderAddr,
+                                              String fromAddr,
+                                              String destAddr,
+                                              long amount,
+                                              long gasLimit) throws Exception {
         // 连接以太坊
         Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
         BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();

@@ -19,7 +19,7 @@ public class Erc20UtilsTest {
         long gasLimit = 100;
 
 
-        RawTransaction transferFromRawTransaction = Erc20Utils.transferFromTransactionCreate(WEB3_PROVIDER_URL,
+        RawTransaction transferFromRawTransaction = Erc20Utils.transferFrom(WEB3_PROVIDER_URL,
                 cntrAddr,
                 spenderAddr,
                 ownerAddr,

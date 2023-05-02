@@ -20,12 +20,12 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Trc20Utils {
-    public static Chain.Transaction approveCreate(String cntrAddr,
-                                                  String ownerAddr,
-                                                  String spender,
-                                                  long amount,
-                                                  String memo,
-                                                  long feeLimit) {
+    public static Chain.Transaction approve(String cntrAddr,
+                                            String ownerAddr,
+                                            String spender,
+                                            long amount,
+                                            String memo,
+                                            long feeLimit) {
         ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
 
         Function approve = new Function("approve",
@@ -45,12 +45,12 @@ public class Trc20Utils {
     }
 
 
-    public static Chain.Transaction transferCreate(String cntrAddr,
-                                                   String fromAddr,
-                                                   String destAddr,
-                                                   long amount,
-                                                   String memo,
-                                                   long feeLimit) {
+    public static Chain.Transaction transfer(String cntrAddr,
+                                             String fromAddr,
+                                             String destAddr,
+                                             long amount,
+                                             String memo,
+                                             long feeLimit) {
         ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
 
         Function transfer = new Function("transfer",
@@ -69,13 +69,13 @@ public class Trc20Utils {
 
     }
 
-    public static Chain.Transaction transferFromCreate(String cntrAddr,
-                                                       String spenderAdder,
-                                                       String fromAddr,
-                                                       String destAddr,
-                                                       long amount,
-                                                       String memo,
-                                                       long feeLimit) {
+    public static Chain.Transaction transferFrom(String cntrAddr,
+                                                 String spenderAdder,
+                                                 String fromAddr,
+                                                 String destAddr,
+                                                 long amount,
+                                                 String memo,
+                                                 long feeLimit) {
         ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
 
 

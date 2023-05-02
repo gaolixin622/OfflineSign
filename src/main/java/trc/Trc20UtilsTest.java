@@ -12,7 +12,7 @@ public class Trc20UtilsTest {
         String memo = "";
         long feeLimit = 100;
 
-        Chain.Transaction transaction = Trc20Utils.transferFromCreate(cntrAddr,
+        Chain.Transaction transaction = Trc20Utils.transferFrom(cntrAddr,
                 destAddr,
                 fromAddr,
                 destAddr,
