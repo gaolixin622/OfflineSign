@@ -13,7 +13,9 @@ import org.web3j.crypto.Sign;
 import org.web3j.crypto.TransactionEncoder;
 import org.web3j.crypto.transaction.type.TransactionType;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
 import org.web3j.protocol.core.methods.response.Log;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -31,6 +33,22 @@ import java.util.Collections;
 import java.util.List;
 
 public class Erc20Utils {
+    private BigInteger balance(String WEB3_PROVIDER_URL, String contractAddress, String address)
+            throws Exception {
+        Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
+
+        Function function = balanceOf(address);
+        String responseValue = callSmartContractFunction(web3j, address, function, contractAddress);
+
+        List<Type> response =
+                FunctionReturnDecoder.decode(responseValue, function.getOutputParameters());
+
+        Uint256 balance = (Uint256) response.get(0);
+
+        return balance.getValue();
+    }
+
+
     public static RawTransaction approve(String WEB3_PROVIDER_URL,
                                          String cntrAddr,
                                          String ownerAddr,
@@ -55,7 +73,6 @@ public class Erc20Utils {
         return rawTransaction;
 
     }
-
 
 
     public static RawTransaction transfer(String WEB3_PROVIDER_URL,
@@ -85,9 +102,6 @@ public class Erc20Utils {
     }
 
 
-
-
-
     public static RawTransaction transferFrom(String WEB3_PROVIDER_URL,
                                               String cntrAddr,
                                               String spenderAddr,
@@ -114,7 +128,6 @@ public class Erc20Utils {
 
         return transaction;
     }
-
 
 
     public static String sign(String hexTxid, String WALLET_PRIVATE_KEY) {
@@ -149,8 +162,28 @@ public class Erc20Utils {
         return transactionHash;
     }
 
+    private Function balanceOf(String owner) {
+        return new Function(
+                "balanceOf",
+                Collections.singletonList(new Address(owner)),
+                Collections.singletonList(new TypeReference<Uint256>() {
+                }));
+    }
 
+    private String callSmartContractFunction(Web3j web3j, String from, Function function, String contractAddress)
+            throws Exception {
+        String encodedFunction = FunctionEncoder.encode(function);
 
+        org.web3j.protocol.core.methods.response.EthCall response =
+                web3j.ethCall(
+                                Transaction.createEthCallTransaction(
+                                        from, contractAddress, encodedFunction),
+                                DefaultBlockParameterName.LATEST)
+                        .sendAsync()
+                        .get();
+
+        return response.getValue();
+    }
 
     private static Function approve(String spender, BigInteger value) {
         return new Function(
@@ -165,7 +198,8 @@ public class Erc20Utils {
         return new Function(
                 "transfer",
                 Arrays.asList(new Address(to), new Uint256(value)),
-                Collections.singletonList(new TypeReference<Bool>() {}));
+                Collections.singletonList(new TypeReference<Bool>() {
+                }));
     }
 
 

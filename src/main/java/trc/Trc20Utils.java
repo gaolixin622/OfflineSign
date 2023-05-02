@@ -1,6 +1,7 @@
 package trc;
 
 import com.google.protobuf.ByteString;
+import org.tron.trident.abi.FunctionReturnDecoder;
 import org.tron.trident.abi.TypeReference;
 import org.tron.trident.abi.datatypes.Address;
 import org.tron.trident.abi.datatypes.Bool;
@@ -11,6 +12,7 @@ import org.tron.trident.core.ApiWrapper;
 import org.tron.trident.core.key.KeyPair;
 import org.tron.trident.core.transaction.TransactionBuilder;
 import org.tron.trident.proto.Chain;
+import org.tron.trident.proto.Response;
 import org.tron.trident.utils.Base58Check;
 import org.tron.trident.utils.Numeric;
 
@@ -20,6 +22,20 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Trc20Utils {
+    public BigInteger balanceOf(String cntrAddr, String accountAddr) {
+        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
+
+        Function balanceOf = new Function("balanceOf",
+                Arrays.asList(new Address(accountAddr)), Arrays.asList(new TypeReference<Uint256>() {
+        }));
+
+        Response.TransactionExtention txnExt = apiWrapperWithoutPrivateKey.constantCall(Base58Check.bytesToBase58(ApiWrapper.parseAddress(accountAddr).toByteArray()),
+                Base58Check.bytesToBase58(ApiWrapper.parseAddress(cntrAddr).toByteArray()), balanceOf);
+        //Convert constant result to human readable text
+        String result = Numeric.toHexString(txnExt.getConstantResult(0).toByteArray());
+        return (BigInteger) FunctionReturnDecoder.decode(result, balanceOf.getOutputParameters()).get(0).getValue();
+    }
+
     public static Chain.Transaction approve(String cntrAddr,
                                             String ownerAddr,
                                             String spender,
