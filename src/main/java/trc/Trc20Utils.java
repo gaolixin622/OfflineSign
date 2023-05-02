@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Trc20Utils {
-    public BigInteger balanceOf(String cntrAddr, String accountAddr) {
+    public static BigInteger balanceOf(String cntrAddr, String accountAddr) {
         ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
 
         Function balanceOf = new Function("balanceOf",
@@ -32,6 +32,7 @@ public class Trc20Utils {
         Response.TransactionExtention txnExt = apiWrapperWithoutPrivateKey.constantCall(Base58Check.bytesToBase58(ApiWrapper.parseAddress(accountAddr).toByteArray()),
                 Base58Check.bytesToBase58(ApiWrapper.parseAddress(cntrAddr).toByteArray()), balanceOf);
         //Convert constant result to human readable text
+        System.out.println(txnExt.getResult().getMessage());
         String result = Numeric.toHexString(txnExt.getConstantResult(0).toByteArray());
         return (BigInteger) FunctionReturnDecoder.decode(result, balanceOf.getOutputParameters()).get(0).getValue();
     }

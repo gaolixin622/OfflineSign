@@ -33,7 +33,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class Erc20Utils {
-    private BigInteger balance(String WEB3_PROVIDER_URL, String contractAddress, String address)
+    public static BigInteger balance(String WEB3_PROVIDER_URL, String contractAddress, String address)
             throws Exception {
         Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
 
@@ -162,7 +162,7 @@ public class Erc20Utils {
         return transactionHash;
     }
 
-    private Function balanceOf(String owner) {
+    private static Function balanceOf(String owner) {
         return new Function(
                 "balanceOf",
                 Collections.singletonList(new Address(owner)),
@@ -170,7 +170,7 @@ public class Erc20Utils {
                 }));
     }
 
-    private String callSmartContractFunction(Web3j web3j, String from, Function function, String contractAddress)
+    private static String callSmartContractFunction(Web3j web3j, String from, Function function, String contractAddress)
             throws Exception {
         String encodedFunction = FunctionEncoder.encode(function);
 
