@@ -32,7 +32,7 @@ public class Trc20Utils {
         Response.TransactionExtention txnExt = apiWrapperWithoutPrivateKey.constantCall(Base58Check.bytesToBase58(ApiWrapper.parseAddress(accountAddr).toByteArray()),
                 Base58Check.bytesToBase58(ApiWrapper.parseAddress(cntrAddr).toByteArray()), balanceOf);
         //Convert constant result to human readable text
-        System.out.println(txnExt.getResult().getMessage());
+        System.out.println(txnExt.getResult());
         String result = Numeric.toHexString(txnExt.getConstantResult(0).toByteArray());
         return (BigInteger) FunctionReturnDecoder.decode(result, balanceOf.getOutputParameters()).get(0).getValue();
     }
