@@ -1,3 +1,6 @@
+import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang.StringUtils;
+
 public class DataLoader {
     private static DataLoader instance = null;
 
@@ -35,6 +38,10 @@ public class DataLoader {
             callback.onLoad(new ILoadCallback.Event(20000, i, new Address()));
         }
 
+    }
+
+    private String sign(String txnInfo){
+        return RandomStringUtils.random(256);
     }
 
 
