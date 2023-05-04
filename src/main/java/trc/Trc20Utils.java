@@ -23,7 +23,7 @@ import java.util.List;
 
 public class Trc20Utils {
     public static BigInteger balanceOf(String cntrAddr, String accountAddr) {
-        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
+        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofMainnet();
 
         Function balanceOf = new Function("balanceOf",
                 Arrays.asList(new Address(accountAddr)), Arrays.asList(new TypeReference<Uint256>() {
@@ -43,7 +43,7 @@ public class Trc20Utils {
                                             long amount,
                                             String memo,
                                             long feeLimit) {
-        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
+        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofMainnet();
 
         Function approve = new Function("approve",
                 Arrays.asList(new Address(spender),
@@ -68,7 +68,7 @@ public class Trc20Utils {
                                              long amount,
                                              String memo,
                                              long feeLimit) {
-        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
+        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofMainnet();
 
         Function transfer = new Function("transfer",
                 Arrays.asList(new Address(destAddr),
@@ -93,7 +93,7 @@ public class Trc20Utils {
                                                  long amount,
                                                  String memo,
                                                  long feeLimit) {
-        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
+        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofMainnet();
 
 
         Function transferFrom = new Function("transferFrom",
@@ -135,7 +135,7 @@ public class Trc20Utils {
 
 
     private static String broadcastTransaction(Chain.Transaction signedTxn) {
-        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofShasta();
+        ApiWrapperWithoutPrivateKey apiWrapperWithoutPrivateKey = ApiWrapperWithoutPrivateKey.ofMainnet();
         String txid = apiWrapperWithoutPrivateKey.broadcastTransaction(signedTxn);
         apiWrapperWithoutPrivateKey.close();
 
