@@ -16,15 +16,14 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.request.Transaction;
-import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
-import org.web3j.protocol.core.methods.response.Log;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.protocol.core.methods.response.*;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.rlp.RlpEncoder;
 import org.web3j.rlp.RlpList;
 import org.web3j.rlp.RlpType;
 import org.web3j.utils.Numeric;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -33,10 +32,21 @@ import java.util.Collections;
 import java.util.List;
 
 public class Erc20Utils {
-    public static BigInteger balance(String WEB3_PROVIDER_URL, String contractAddress, String address)
-            throws Exception {
-        Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
 
+    public static BigInteger estimateGasPrice(Web3j web3j) throws IOException {
+        EthGasPrice gas = web3j.ethGasPrice().send();
+        return gas.getGasPrice();
+    }
+
+
+    public static BigInteger getGasLimit(Web3j web3j) throws IOException {
+        EthBlock.Block block = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false).send().getBlock();
+        return block.getGasLimit().divide(new BigInteger(String.valueOf(block.getTransactions().size())));
+    }
+
+
+    public static BigInteger balance(Web3j web3j, String contractAddress, String address)
+            throws Exception {
         Function function = balanceOf(address);
         String responseValue = callSmartContractFunction(web3j, address, function, contractAddress);
 
@@ -49,16 +59,13 @@ public class Erc20Utils {
     }
 
 
-    public static RawTransaction approve(String WEB3_PROVIDER_URL,
+    public static RawTransaction approve(Web3j web3j,
                                          String cntrAddr,
                                          String ownerAddr,
                                          String spenderAddr,
                                          long amount,
-                                         long gasLimit) throws Exception {
-        // 连接以太坊
-        Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
-        BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
-
+                                         BigInteger gasPrice,
+                                         BigInteger gasLimit) throws Exception {
         Function function = approve(spenderAddr, BigInteger.valueOf(amount));
 
         BigInteger newNonce = getTransactionNonce(web3j, ownerAddr);
@@ -67,23 +74,35 @@ public class Erc20Utils {
 
         RawTransaction rawTransaction =
                 RawTransaction.createTransaction(
-                        newNonce, gasPrice, BigInteger.valueOf(gasLimit), cntrAddr, encodedFunction);
+                        newNonce, gasPrice, gasLimit, cntrAddr, encodedFunction);
 
 
         return rawTransaction;
 
     }
 
+    public static BigInteger allowance(Web3j web3j,
+                                       String cntrAddr,
+                                       String owner,
+                                       String spender) throws Exception {
+        Function function = allowance(owner, spender);
+        String responseValue = callSmartContractFunction(web3j, spender, function, cntrAddr);
 
-    public static RawTransaction transfer(String WEB3_PROVIDER_URL,
+        List<Type> response =
+                FunctionReturnDecoder.decode(responseValue, function.getOutputParameters());
+        Uint256 allowance = (Uint256) response.get(0);
+
+        return allowance.getValue();
+    }
+
+
+    public static RawTransaction transfer(Web3j web3j,
                                           String cntrAddr,
                                           String fromAddr,
                                           String destAddr,
                                           long amount,
-                                          long gasLimit) throws Exception {
-        // 连接以太坊
-        Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
-        BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
+                                          BigInteger gasPrice,
+                                          BigInteger gasLimit) throws Exception {
 
         // 构造ERC20代币的transfer函数调用
         Function function = transfer(destAddr, BigInteger.valueOf(amount));
@@ -96,22 +115,20 @@ public class Erc20Utils {
         // 构造原始交易
         RawTransaction transaction =
                 RawTransaction.createTransaction(
-                        newNonce, gasPrice, BigInteger.valueOf(gasLimit), cntrAddr, encodedFunction);
+                        newNonce, gasPrice, gasLimit, cntrAddr, encodedFunction);
 
         return transaction;
     }
 
 
-    public static RawTransaction transferFrom(String WEB3_PROVIDER_URL,
+    public static RawTransaction transferFrom(Web3j web3j,
                                               String cntrAddr,
                                               String spenderAddr,
                                               String fromAddr,
                                               String destAddr,
                                               long amount,
-                                              long gasLimit) throws Exception {
-        // 连接以太坊
-        Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
-        BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
+                                              BigInteger gasPrice,
+                                              BigInteger gasLimit) throws Exception {
 
         // 构造ERC20代币的transfer函数调用
         Function function = transferFrom(fromAddr, destAddr, BigInteger.valueOf(amount));
@@ -124,7 +141,7 @@ public class Erc20Utils {
         // 构造原始交易
         RawTransaction transaction =
                 RawTransaction.createTransaction(
-                        newNonce, gasPrice, BigInteger.valueOf(gasLimit), cntrAddr, encodedFunction);
+                        newNonce, gasPrice, gasLimit, cntrAddr, encodedFunction);
 
         return transaction;
     }
@@ -145,9 +162,8 @@ public class Erc20Utils {
     }
 
 
-    public static String send(String WEB3_PROVIDER_URL, RawTransaction transferFromRawTransaction, String hexSignDataJson) throws Exception {
+    public static String send(Web3j web3j, RawTransaction transferFromRawTransaction, String hexSignDataJson) throws Exception {
         // 连接以太坊
-        Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
 
         HexSignData hexSignData = JSONObject.parseObject(hexSignDataJson, HexSignData.class);
         Sign.SignatureData signatureData = new Sign.SignatureData(Numeric.hexStringToByteArray(hexSignData.getV()),
@@ -193,6 +209,14 @@ public class Erc20Utils {
                 }));
     }
 
+
+    private static Function allowance(String owner, String spender) {
+        return new Function(
+                "allowance",
+                Arrays.asList(new Address(owner), new Address(spender)),
+                Collections.singletonList(new TypeReference<Uint256>() {
+                }));
+    }
 
     private static Function transfer(String to, BigInteger value) {
         return new Function(
