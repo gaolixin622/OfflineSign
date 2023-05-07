@@ -7,7 +7,10 @@ import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.utils.Numeric;
 
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 
 public class Erc20UtilsTest {
     static String WEB3_PROVIDER_URL = "https://mainnet.infura.io/v3/c950feb3e5fc4a06bb162dd9899ef944";
@@ -23,11 +26,16 @@ public class Erc20UtilsTest {
     static String destAddr = "0xbd75aa5d4dfcd5e29961e189cc8ed9650f11a8fd";
 
     public static void main(String[] args) throws Exception {
+        testBalance();
         allowanceTest();
 
+    }
+
+
+    private static void transferFromTest() throws Exception {
         Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
 
-        long amount = 1;
+        String amount ="1";
 
         BigInteger gasPriceWei = Erc20Utils.estimateGasPrice(web3j);
         double gasPriceDoubleWei = gasPriceWei.doubleValue();
@@ -48,6 +56,7 @@ public class Erc20UtilsTest {
                 ownerAddr,
                 destAddr,
                 amount,
+                6,
                 gasPriceWei,
                 gasLimit);
 
@@ -67,13 +76,11 @@ public class Erc20UtilsTest {
         System.out.println(transferFromTransactionHash);
 
         web3j.shutdown();
-
     }
-
 
     private static void allowanceTest() throws Exception {
         Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
-        BigInteger allowance = Erc20Utils.allowance(web3j, cntrAddr, ownerAddr, spenderAddr);
+        BigDecimal allowance = Erc20Utils.allowance(web3j, cntrAddr, ownerAddr, spenderAddr,6);
         System.out.println(allowance);
         web3j.shutdown();
     }
@@ -81,7 +88,7 @@ public class Erc20UtilsTest {
     private static void testApprove() throws Exception {
         Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
 
-        long amount = 1;
+        String amount ="1";
 
         BigInteger gasPriceWei = Erc20Utils.estimateGasPrice(web3j);
         double gasPriceDoubleWei = gasPriceWei.doubleValue();
@@ -101,6 +108,7 @@ public class Erc20UtilsTest {
                 ownerAddr,
                 spenderAddr,
                 amount,
+                6,
                 gasPriceWei,
                 gasLimit);
 
@@ -127,10 +135,11 @@ public class Erc20UtilsTest {
 
         try {
             BigInteger eth = web3j.ethGetBalance(ownerAddr, DefaultBlockParameterName.LATEST).send().getBalance();
-            System.out.println(eth.doubleValue() / Math.pow(10, 18));
 
-            BigInteger usdt = Erc20Utils.balance(web3j, cntrAddr, ownerAddr);
-            System.out.println(usdt.doubleValue() / Math.pow(10, 6));
+            System.out.println(Erc20Utils.toBigDecimal(eth, 18));
+
+            BigDecimal usdt = Erc20Utils.balance(web3j, cntrAddr, ownerAddr, 6);
+            System.out.println(usdt);
 
         } catch (Exception ex) {
             System.out.println(ex);
@@ -140,4 +149,50 @@ public class Erc20UtilsTest {
 
         }
     }
+
+    private static void testEthTransfer() throws Exception {
+        Web3j web3j = Web3j.build(new HttpService(WEB3_PROVIDER_URL));
+
+
+        String amount = "0.007" ;
+
+        BigInteger gasPriceWei = Erc20Utils.estimateGasPrice(web3j);
+        double gasPriceDoubleWei = gasPriceWei.doubleValue();
+        System.out.println(gasPriceDoubleWei + "wei");
+
+        double gasPriceDoubleEthGwei = gasPriceDoubleWei / 1_000_000_000d;
+        System.out.println(gasPriceDoubleEthGwei + "Gwei");
+
+        BigInteger gasLimit = Erc20Utils.getGasLimit(web3j);
+        double gasLimitDouble = gasLimit.doubleValue();
+        System.out.println(gasLimitDouble);
+
+        gasLimit = BigInteger.valueOf(30000);
+
+        RawTransaction transferFromRawTransaction = Erc20Utils.ethTransfer(web3j,
+                ownerAddr,
+                spenderAddr,
+                amount,
+                18,
+                gasPriceWei,
+                gasLimit);
+
+
+        byte[] encodedTransaction = TransactionEncoder.encode(transferFromRawTransaction);
+
+
+        //将hexTxid以二维码形式，展示
+        //另一部设备，扫描hexTxid，进行签名
+        //将签名结果用二维码展示
+        String hexTxid = Numeric.toHexString(encodedTransaction);
+        //这一步签名，在另一部设备完成
+        String hexSignDataJson = Erc20Utils.sign(hexTxid, ownerKey);
+
+        String transferFromTransactionHash = Erc20Utils.send(web3j, transferFromRawTransaction, hexSignDataJson);
+
+        System.out.println(transferFromTransactionHash);
+
+        web3j.shutdown();
+    }
+
 }

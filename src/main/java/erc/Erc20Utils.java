@@ -24,7 +24,9 @@ import org.web3j.rlp.RlpType;
 import org.web3j.utils.Numeric;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,7 +47,7 @@ public class Erc20Utils {
     }
 
 
-    public static BigInteger balance(Web3j web3j, String contractAddress, String address)
+    public static BigDecimal balance(Web3j web3j, String contractAddress, String address, int power)
             throws Exception {
         Function function = balanceOf(address);
         String responseValue = callSmartContractFunction(web3j, address, function, contractAddress);
@@ -55,18 +57,35 @@ public class Erc20Utils {
 
         Uint256 balance = (Uint256) response.get(0);
 
-        return balance.getValue();
+
+        return toBigDecimal(balance.getValue(), power);
     }
 
+
+    public static BigDecimal toBigDecimal(BigInteger bigInteger, int dividePower) {
+        BigDecimal b1 = new BigDecimal(bigInteger.toString());
+        return b1.divide(BigDecimal.valueOf(Math.pow(10, dividePower)), dividePower, RoundingMode.HALF_UP);
+    }
+
+
+    public static BigInteger toBigInteger(String amount, int multiplyPower) {
+        BigDecimal b1 = new BigDecimal(amount);
+        BigDecimal b2 = b1.multiply(BigDecimal.valueOf(Math.pow(10, multiplyPower)));
+        return b2.toBigInteger();
+    }
 
     public static RawTransaction approve(Web3j web3j,
                                          String cntrAddr,
                                          String ownerAddr,
                                          String spenderAddr,
-                                         long amount,
+                                         String amount,
+                                         int power,
                                          BigInteger gasPrice,
                                          BigInteger gasLimit) throws Exception {
-        Function function = approve(spenderAddr, BigInteger.valueOf(amount));
+
+        BigInteger amountInt =toBigInteger(amount, power);
+
+        Function function = approve(spenderAddr, amountInt);
 
         BigInteger newNonce = getTransactionNonce(web3j, ownerAddr);
 
@@ -81,10 +100,11 @@ public class Erc20Utils {
 
     }
 
-    public static BigInteger allowance(Web3j web3j,
+    public static BigDecimal allowance(Web3j web3j,
                                        String cntrAddr,
                                        String owner,
-                                       String spender) throws Exception {
+                                       String spender,
+                                       int power) throws Exception {
         Function function = allowance(owner, spender);
         String responseValue = callSmartContractFunction(web3j, spender, function, cntrAddr);
 
@@ -92,7 +112,7 @@ public class Erc20Utils {
                 FunctionReturnDecoder.decode(responseValue, function.getOutputParameters());
         Uint256 allowance = (Uint256) response.get(0);
 
-        return allowance.getValue();
+        return toBigDecimal(allowance.getValue(), power);
     }
 
 
@@ -100,12 +120,14 @@ public class Erc20Utils {
                                           String cntrAddr,
                                           String fromAddr,
                                           String destAddr,
-                                          long amount,
+                                          String amount,
+                                          int power,
                                           BigInteger gasPrice,
                                           BigInteger gasLimit) throws Exception {
+        BigInteger amountInt =toBigInteger(amount, power);
 
         // 构造ERC20代币的transfer函数调用
-        Function function = transfer(destAddr, BigInteger.valueOf(amount));
+        Function function = transfer(destAddr, amountInt);
 
         String encodedFunction = FunctionEncoder.encode(function);
 
@@ -120,18 +142,40 @@ public class Erc20Utils {
         return transaction;
     }
 
+    public static RawTransaction ethTransfer(Web3j web3j,
+                                             String fromAddr,
+                                             String destAddr,
+                                             String amount,
+                                             int power,
+                                             BigInteger gasPrice,
+                                             BigInteger gasLimit) throws Exception {
+        BigInteger amountInt =toBigInteger(amount, power);
+
+        // 获取新的nonce值
+        BigInteger newNonce = getTransactionNonce(web3j, fromAddr);
+        System.out.println("nonce  " + newNonce);
+
+        // 构造原始交易
+        RawTransaction transaction =
+                RawTransaction.createEtherTransaction(
+                        newNonce, gasPrice, gasLimit, destAddr, amountInt);
+
+        return transaction;
+    }
 
     public static RawTransaction transferFrom(Web3j web3j,
                                               String cntrAddr,
                                               String spenderAddr,
                                               String fromAddr,
                                               String destAddr,
-                                              long amount,
+                                              String amount,
+                                              int power,
                                               BigInteger gasPrice,
                                               BigInteger gasLimit) throws Exception {
+        BigInteger amountInt =toBigInteger(amount, power);
 
         // 构造ERC20代币的transfer函数调用
-        Function function = transferFrom(fromAddr, destAddr, BigInteger.valueOf(amount));
+        Function function = transferFrom(fromAddr, destAddr, amountInt);
 
         String encodedFunction = FunctionEncoder.encode(function);
 
